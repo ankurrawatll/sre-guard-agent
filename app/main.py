@@ -1,8 +1,10 @@
 import os
 import time
+import base64
+import json
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -10,26 +12,24 @@ from agent import sre_runner
 
 load_dotenv()
 
-# Track processed log insert IDs to avoid duplicate trigger loops
 PROCESSED_INCIDENTS = set()
 
 async def background_gcp_log_listener():
     """
-    100% Autonomous Background Listener:
+    Background Watchdog:
     Continuously polls GCP Cloud Logging API for 500/503 errors in speakgenieyc.
-    When a new error (like 503 on /create-order) arrives, it auto-triggers SRE-Guard!
     """
-    await asyncio.sleep(5)  # Wait for startup
+    await asyncio.sleep(5)
     print("[AUTONOMOUS LOG MONITOR] Autonomous GCP Cloud Logging Watchdog Started...")
     
     while True:
         try:
             from tools.log_tools import fetch_recent_logs
             gcp_project = os.getenv("GCP_PROJECT_ID", "speakgenieyc")
-            logs = fetch_recent_logs(service_name="speakgenie-backend", project_id=gcp_project)
+            logs = fetch_recent_logs(service_name="speakgenie-backend", lookback_minutes=15)
             
             log_str = str(logs)
-            if ("503" in log_str or "500" in log_str or "TypeError" in log_str) and ("create-order" in log_str or "user" in log_str):
+            if ("503" in log_str or "500" in log_str or "TypeError" in log_str) and ("create-order" in log_str or "user" in log_str or "active" in log_str):
                 incident_key = hash(log_str[:100])
                 if incident_key not in PROCESSED_INCIDENTS:
                     PROCESSED_INCIDENTS.add(incident_key)
@@ -38,11 +38,10 @@ async def background_gcp_log_listener():
         except Exception as e:
             print(f"[AUTONOMOUS WATCHDOG NOTICE] {e}")
             
-        await asyncio.sleep(25)  # Check every 25 seconds
+        await asyncio.sleep(25)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Launch autonomous background log listener on Cloud Run startup
     watchdog_task = asyncio.create_task(background_gcp_log_listener())
     yield
     watchdog_task.cancel()
@@ -54,7 +53,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# In-memory store for incident history
 INCIDENT_HISTORY = [
     {
         "id": "INC-8891",
@@ -67,12 +65,6 @@ INCIDENT_HISTORY = [
         "pr_url": "https://github.com/Dharma-Angels/mygurukuledu-api/pulls"
     }
 ]
-
-class IncidentAlert(BaseModel):
-    service_name: str = "mygurukuledu-api"
-    error_code: int = 500
-    message: str = "TypeError: Cannot read properties of undefined (reading 'role')"
-    trace_id: str = "inc-9901"
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard_ui():
@@ -110,7 +102,6 @@ def dashboard_ui():
             overflow-x: hidden;
         }
 
-        /* Vibrant Neon Corner Flares */
         .flare-top-left {
             position: fixed;
             top: -150px;
@@ -149,7 +140,6 @@ def dashboard_ui():
 
         .container { max-width: 1280px; margin: 0 auto; position: relative; z-index: 1; }
 
-        /* Header Layout */
         header {
             display: flex;
             justify-content: space-between;
@@ -218,7 +208,6 @@ def dashboard_ui():
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
         }
 
-        /* Top 3 Metric Cards */
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -269,7 +258,6 @@ def dashboard_ui():
             -webkit-text-fill-color: transparent;
         }
 
-        /* Main Content Layout */
         .main-grid {
             display: grid;
             grid-template-columns: 1.75fr 1fr;
@@ -322,7 +310,6 @@ def dashboard_ui():
             box-shadow: 0 6px 30px rgba(236, 72, 153, 0.65);
         }
 
-        /* Incident Box */
         .incident-box {
             border-left: 3px solid #ec4899;
             background: rgba(0, 0, 0, 0.4);
@@ -388,7 +375,6 @@ def dashboard_ui():
             word-break: break-all;
         }
 
-        /* Sidebar Info List */
         .safeguard-list {
             list-style: none;
             font-size: 0.85rem;
@@ -412,13 +398,11 @@ def dashboard_ui():
 
         .safeguard-list strong { color: #f3f4f6; }
 
-        /* Webhook Endpoint Card */
         .webhook-card {
             border: 1px solid rgba(236, 72, 153, 0.3);
             background: linear-gradient(135deg, rgba(236, 72, 153, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
         }
 
-        /* Footer */
         footer {
             text-align: center;
             margin-top: 3rem;
@@ -438,13 +422,11 @@ def dashboard_ui():
     </style>
 </head>
 <body>
-    <!-- Corner Flares -->
     <div class="flare-top-left"></div>
     <div class="flare-bottom-right"></div>
     <div class="flare-bottom-left"></div>
 
     <div class="container">
-        <!-- Header -->
         <header>
             <div class="header-left">
                 <div class="brand-badge">
@@ -458,11 +440,10 @@ def dashboard_ui():
             </div>
             <div class="header-status">
                 <div class="pulse-dot"></div>
-                Autonomous Watchdog Monitoring GCP Cloud Logging
+                GCP Pub/Sub & Cloud Logging Active
             </div>
         </header>
 
-        <!-- Top Metrics -->
         <div class="metrics-grid">
             <div class="metric-card">
                 <div class="metric-icon">
@@ -495,7 +476,6 @@ def dashboard_ui():
             </div>
         </div>
 
-        <!-- Main Content -->
         <div class="main-grid">
             <div>
                 <div class="card">
@@ -569,7 +549,7 @@ Header: Content-Type: application/json
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        service_name: 'mygurukuledu-api',
+                        service_name: 'speakgenie-backend',
                         error_code: 500,
                         message: 'TypeError: Cannot read properties of undefined (reading \'role\')'
                     })
@@ -587,19 +567,48 @@ Header: Content-Type: application/json
     return html_content
 
 @app.post("/webhook/incident")
-def handle_incident(alert: IncidentAlert, background_tasks: BackgroundTasks):
+async def handle_incident(request: Request, background_tasks: BackgroundTasks):
     """
-    Receives automated GCP Cloud Logging / PubSub alerts and triggers the SRE autonomous workflow.
+    Accepts BOTH GCP Pub/Sub Push JSON Envelopes and direct webhook JSON payloads.
+    Returns HTTP 200 OK to Pub/Sub to confirm ingestion.
     """
-    prompt = f"Investigate 500 incident in service {alert.service_name} with message: {alert.message}. Fetch logs and open a GitHub PR with a fix."
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+        
+    service_name = "speakgenie-backend"
+    error_msg = "500 Internal Server Error"
+    
+    # 1. Handle GCP Pub/Sub Push Envelope
+    if "message" in body and isinstance(body["message"], dict):
+        pubsub_msg = body["message"]
+        if "data" in pubsub_msg:
+            try:
+                decoded_bytes = base64.b64decode(pubsub_msg["data"])
+                decoded_json = json.loads(decoded_bytes.decode('utf-8'))
+                print("[PUBSUB INGESTION DECODED]", decoded_json)
+                
+                if isinstance(decoded_json, dict):
+                    service_name = decoded_json.get("resource", {}).get("labels", {}).get("service_name", "speakgenie-backend")
+                    error_msg = decoded_json.get("textPayload") or str(decoded_json.get("jsonPayload", "")) or "500 Error Ingested from Pub/Sub"
+            except Exception as parse_err:
+                print(f"[PUBSUB DECODE NOTICE] {parse_err}")
+
+    # 2. Handle Direct Webhook Payload
+    elif "service_name" in body or "error_code" in body:
+        service_name = body.get("service_name", "speakgenie-backend")
+        error_msg = body.get("message", "500 Error")
+
+    print(f"\n[SRE-GUARD AUTONOMOUS TRIGGER] Ingested Alert for '{service_name}': {error_msg}")
     
     # Trigger SRE Runner in background
-    background_tasks.add_task(sre_runner.run_live_inspection, alert.service_name)
+    background_tasks.add_task(sre_runner.run_live_inspection, service_name)
     
     return {
         "status": "triggered",
-        "message": f"SRE-Guard autonomous workflow initiated for service '{alert.service_name}'",
-        "trace_id": alert.trace_id
+        "service": service_name,
+        "message": f"SRE-Guard autonomous workflow initiated for '{service_name}'"
     }
 
 @app.get("/api/incidents")

@@ -68,13 +68,46 @@ def dashboard_ui():
             padding: 2.5rem;
             position: relative;
             overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(236, 72, 153, 0.18) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.18) 0%, transparent 40%),
-                radial-gradient(circle at 50% 50%, rgba(255, 107, 53, 0.08) 0%, transparent 60%);
         }
 
-        .container { max-width: 1280px; margin: 0 auto; }
+        /* Vibrant Neon Corner Flares */
+        .flare-top-left {
+            position: fixed;
+            top: -150px;
+            left: -150px;
+            width: 650px;
+            height: 650px;
+            background: radial-gradient(circle, rgba(236, 72, 153, 0.45) 0%, rgba(168, 85, 247, 0.25) 45%, transparent 70%);
+            filter: blur(100px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .flare-bottom-right {
+            position: fixed;
+            bottom: -150px;
+            right: -150px;
+            width: 750px;
+            height: 750px;
+            background: radial-gradient(circle, rgba(217, 70, 239, 0.45) 0%, rgba(168, 85, 247, 0.3) 50%, transparent 70%);
+            filter: blur(120px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .flare-bottom-left {
+            position: fixed;
+            bottom: -120px;
+            left: -120px;
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, rgba(255, 107, 53, 0.35) 0%, rgba(236, 72, 153, 0.15) 50%, transparent 70%);
+            filter: blur(100px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container { max-width: 1280px; margin: 0 auto; position: relative; z-index: 1; }
 
         /* Header Layout */
         header {
@@ -97,7 +130,7 @@ def dashboard_ui():
             font-size: 1.1rem;
             letter-spacing: 1px;
             color: #ffffff;
-            box-shadow: 0 8px 24px rgba(236, 72, 153, 0.35);
+            box-shadow: 0 8px 30px rgba(236, 72, 153, 0.5);
         }
 
         .brand-title h1 {
@@ -117,8 +150,8 @@ def dashboard_ui():
         }
 
         .header-status {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.25);
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
             padding: 0.5rem 1.2rem;
             border-radius: 20px;
             font-size: 0.85rem;
@@ -127,6 +160,7 @@ def dashboard_ui():
             align-items: center;
             gap: 0.6rem;
             font-weight: 500;
+            backdrop-filter: blur(10px);
         }
 
         .pulse-dot {
@@ -154,14 +188,14 @@ def dashboard_ui():
 
         .metric-card {
             background: var(--card-bg);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(24px);
             border: 1px solid var(--border-color);
             border-radius: 20px;
             padding: 1.5rem 1.75rem;
             display: flex;
             align-items: center;
             gap: 1.25rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
         }
 
         .metric-icon {
@@ -169,12 +203,13 @@ def dashboard_ui():
             height: 56px;
             border-radius: 50%;
             background: rgba(168, 85, 247, 0.12);
-            border: 1px solid rgba(168, 85, 247, 0.25);
+            border: 1px solid rgba(168, 85, 247, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--accent-magenta);
             flex-shrink: 0;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
         }
 
         .metric-info label {
@@ -203,11 +238,11 @@ def dashboard_ui():
 
         .card {
             background: var(--card-bg);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(24px);
             border: 1px solid var(--border-color);
             border-radius: 20px;
             padding: 1.75rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
             margin-bottom: 1.5rem;
         }
 
@@ -238,19 +273,19 @@ def dashboard_ui():
             font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
+            box-shadow: 0 4px 25px rgba(236, 72, 153, 0.45);
             font-family: inherit;
         }
 
         .btn-trigger:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(236, 72, 153, 0.5);
+            box-shadow: 0 6px 30px rgba(236, 72, 153, 0.65);
         }
 
         /* Incident Box */
         .incident-box {
             border-left: 3px solid #ec4899;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.4);
             border-radius: 12px;
             padding: 1.25rem;
         }
@@ -270,9 +305,9 @@ def dashboard_ui():
         }
 
         .status-pill-green {
-            background: rgba(16, 185, 129, 0.12);
+            background: rgba(16, 185, 129, 0.15);
             color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(16, 185, 129, 0.35);
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
             font-size: 0.75rem;
@@ -288,8 +323,8 @@ def dashboard_ui():
         }
 
         .code-box {
-            background: #090a10;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: #08090e;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 10px;
             padding: 1.25rem;
             font-family: 'Fira Code', monospace;
@@ -339,8 +374,8 @@ def dashboard_ui():
 
         /* Webhook Endpoint Card */
         .webhook-card {
-            border: 1px solid rgba(236, 72, 153, 0.25);
-            background: linear-gradient(135deg, rgba(236, 72, 153, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
         }
 
         /* Footer */
@@ -363,6 +398,11 @@ def dashboard_ui():
     </style>
 </head>
 <body>
+    <!-- Corner Flares -->
+    <div class="flare-top-left"></div>
+    <div class="flare-bottom-right"></div>
+    <div class="flare-bottom-left"></div>
+
     <div class="container">
         <!-- Header -->
         <header>
@@ -395,7 +435,7 @@ def dashboard_ui():
             </div>
 
             <div class="metric-card">
-                <div class="metric-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25);">
+                <div class="metric-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
                 </div>
                 <div class="metric-info">
@@ -405,7 +445,7 @@ def dashboard_ui():
             </div>
 
             <div class="metric-card">
-                <div class="metric-icon" style="color: #f97316; background: rgba(249, 115, 22, 0.12); border-color: rgba(249, 115, 22, 0.25);">
+                <div class="metric-icon" style="color: #f97316; background: rgba(249, 115, 22, 0.12); border-color: rgba(249, 115, 22, 0.3);">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
                 </div>
                 <div class="metric-info">

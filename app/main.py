@@ -1,5 +1,7 @@
 import os
 import time
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
@@ -8,10 +10,48 @@ from agent import sre_runner
 
 load_dotenv()
 
+# Track processed log insert IDs to avoid duplicate trigger loops
+PROCESSED_INCIDENTS = set()
+
+async def background_gcp_log_listener():
+    """
+    100% Autonomous Background Listener:
+    Continuously polls GCP Cloud Logging API for 500/503 errors in speakgenieyc.
+    When a new error (like 503 on /create-order) arrives, it auto-triggers SRE-Guard!
+    """
+    await asyncio.sleep(5)  # Wait for startup
+    print("[AUTONOMOUS LOG MONITOR] Autonomous GCP Cloud Logging Watchdog Started...")
+    
+    while True:
+        try:
+            from tools.log_tools import fetch_recent_logs
+            gcp_project = os.getenv("GCP_PROJECT_ID", "speakgenieyc")
+            logs = fetch_recent_logs(service_name="speakgenie-backend", project_id=gcp_project)
+            
+            log_str = str(logs)
+            if ("503" in log_str or "500" in log_str or "TypeError" in log_str) and ("create-order" in log_str or "user" in log_str):
+                incident_key = hash(log_str[:100])
+                if incident_key not in PROCESSED_INCIDENTS:
+                    PROCESSED_INCIDENTS.add(incident_key)
+                    print(f"\n[AUTONOMOUS WATCHDOG ALERT] Detected unhandled 500/503 error in GCP Cloud Logging! Triggering SRE-Guard...")
+                    sre_runner.run_live_inspection(service_name="speakgenie-backend")
+        except Exception as e:
+            print(f"[AUTONOMOUS WATCHDOG NOTICE] {e}")
+            
+        await asyncio.sleep(25)  # Check every 25 seconds
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Launch autonomous background log listener on Cloud Run startup
+    watchdog_task = asyncio.create_task(background_gcp_log_listener())
+    yield
+    watchdog_task.cancel()
+
 app = FastAPI(
     title="SRE-Guard Autonomous Agent Dashboard & Webhook",
     description="Autonomous DevOps & Site Reliability Engineer built for Google Agentic Hackathon",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # In-memory store for incident history
@@ -418,7 +458,7 @@ def dashboard_ui():
             </div>
             <div class="header-status">
                 <div class="pulse-dot"></div>
-                Agent Active on Cloud Run
+                Autonomous Watchdog Monitoring GCP Cloud Logging
             </div>
         </header>
 

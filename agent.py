@@ -12,7 +12,10 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY is missing in .env file.")
 
+# Force Developer API Key Mode (Disable Vertex AI / ADC OAuth fallback on GCP Cloud Run)
 os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
+os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
+os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "false"
 
 import google.genai as genai
 

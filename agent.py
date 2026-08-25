@@ -12,16 +12,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY is missing in .env file.")
 
-# Force Developer API Key Mode (Disable Vertex AI / ADC OAuth fallback on GCP Cloud Run)
-os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
-os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
-os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "false"
-
-import google.genai as genai
+import google.generativeai as genai
+genai.configure(api_key=GEMINI_API_KEY)
 
 class SREAgentRunner:
     def __init__(self):
-        self.client = genai.Client(api_key=GEMINI_API_KEY)
+        self.model_name = "gemini-3.6-flash"
 
     def run_live_inspection(self, service_name: str = "speakgenie-backend", raw_log_text: str = None, max_iterations: int = 3):
         print("\n" + "="*80)
@@ -60,10 +56,8 @@ Identify:
 3. The exact error type and root cause.
 4. Recommended defensive code fix strategy.
 """
-        triage_response = self.client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=triage_prompt
-        )
+        model = genai.GenerativeModel(self.model_name)
+        triage_response = model.generate_content(triage_prompt)
         triage_summary = triage_response.text
         
         print("---------------------------------------------------------------------")
@@ -117,10 +111,7 @@ Generate the updated, fully fixed source code for {target_file_path}.
 Make sure to add defensive checks (null/undefined guards) to prevent future 500 errors.
 Return ONLY valid executable Javascript code inside Javascript code blocks.
 """
-            fix_response = self.client.models.generate_content(
-                model="gemini-3.6-flash",
-                contents=fix_prompt
-            )
+            fix_response = model.generate_content(fix_prompt)
             raw_patch = fix_response.text
             
             # Extract code from markdown block if present

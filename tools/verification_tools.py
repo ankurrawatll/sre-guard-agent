@@ -11,7 +11,7 @@ def verify_code_patch(file_path: str, proposed_code: str) -> dict:
     
     # 1. Syntax Check for JavaScript / Node.js
     if ext in ['.js', '.jsx', '.ts', '.tsx']:
-        with tempfile.NamedTemporaryFile(suffix='.js', mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix='.js', mode='w', encoding='utf-8', delete=False) as f:
             f.write(proposed_code)
             temp_path = f.name
             
@@ -39,7 +39,7 @@ def verify_code_patch(file_path: str, proposed_code: str) -> dict:
 
     # 2. Syntax Check for Python
     elif ext == '.py':
-        with tempfile.NamedTemporaryFile(suffix='.py', mode='w', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix='.py', mode='w', encoding='utf-8', delete=False) as f:
             f.write(proposed_code)
             temp_path = f.name
             

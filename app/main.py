@@ -608,6 +608,14 @@ TypeError: Cannot read properties of undefined (reading 'role')
         service_name = body.get("service_name", "speakgenie-backend")
         error_msg = body.get("message", error_msg)
 
+    # 3. RECURSION PREVENTION: Ignore log alerts originating from sre-guard-agent itself!
+    if service_name == "sre-guard-agent" or "sre-guard-agent" in str(error_msg):
+        print(f"[RECURSION PREVENTION] Ignored log alert originating from 'sre-guard-agent' itself.")
+        return {
+            "status": "ignored",
+            "reason": "Self-log recursion prevention activated."
+        }
+
     print(f"\n[SRE-GUARD AUTONOMOUS TRIGGER] Ingested Alert for '{service_name}': {error_msg}")
     
     # Trigger SRE Runner in background with DIRECTLY ingested log text

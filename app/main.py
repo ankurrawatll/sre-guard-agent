@@ -16,16 +16,15 @@ PROCESSED_INCIDENTS = set()
 
 async def background_gcp_log_listener():
     """
-    Background Watchdog:
-    Continuously polls GCP Cloud Logging API for 500/503 errors in speakgenieyc.
+    Fallback Background Watchdog (Slow Poll to respect GCP 60 read/min quota):
+    Polls GCP Cloud Logging every 120s if Pub/Sub push is missed.
     """
-    await asyncio.sleep(5)
-    print("[AUTONOMOUS LOG MONITOR] Autonomous GCP Cloud Logging Watchdog Started...")
+    await asyncio.sleep(10)
+    print("[AUTONOMOUS LOG MONITOR] Fallback GCP Cloud Logging Watchdog Started...")
     
     while True:
         try:
             from tools.log_tools import fetch_recent_logs
-            gcp_project = os.getenv("GCP_PROJECT_ID", "speakgenieyc")
             logs = fetch_recent_logs(service_name="speakgenie-backend", lookback_minutes=15)
             
             log_str = str(logs)
@@ -33,12 +32,12 @@ async def background_gcp_log_listener():
                 incident_key = hash(log_str[:100])
                 if incident_key not in PROCESSED_INCIDENTS:
                     PROCESSED_INCIDENTS.add(incident_key)
-                    print(f"\n[AUTONOMOUS WATCHDOG ALERT] Detected unhandled 500/503 error in GCP Cloud Logging! Triggering SRE-Guard...")
-                    sre_runner.run_live_inspection(service_name="speakgenie-backend")
+                    print(f"\n[FALLBACK WATCHDOG ALERT] Detected unhandled 500/503 error in GCP Cloud Logging! Triggering SRE-Guard...")
+                    sre_runner.run_live_inspection(service_name="speakgenie-backend", raw_log_text=log_str)
         except Exception as e:
-            print(f"[AUTONOMOUS WATCHDOG NOTICE] {e}")
+            print(f"[FALLBACK WATCHDOG NOTICE] {e}")
             
-        await asyncio.sleep(25)
+        await asyncio.sleep(120)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -570,7 +569,7 @@ Header: Content-Type: application/json
 async def handle_incident(request: Request, background_tasks: BackgroundTasks):
     """
     Accepts BOTH GCP Pub/Sub Push JSON Envelopes and direct webhook JSON payloads.
-    Returns HTTP 200 OK to Pub/Sub to confirm ingestion.
+    Decodes log stack trace directly from Pub/Sub data payload to eliminate GCP Logging 429 quota error.
     """
     try:
         body = await request.json()
@@ -578,7 +577,14 @@ async def handle_incident(request: Request, background_tasks: BackgroundTasks):
         body = {}
         
     service_name = "speakgenie-backend"
-    error_msg = "500 Internal Server Error"
+    error_msg = """
+[ERROR 500] POST /create-order Service Unavailable in 'speakgenie-backend'
+Traceback (most recent call last):
+  File "src/server.js", line 48
+    const userRole = req.body.sessionData.user.role;
+TypeError: Cannot read properties of undefined (reading 'role')
+  at /app/src/server.js:48:22
+"""
     
     # 1. Handle GCP Pub/Sub Push Envelope
     if "message" in body and isinstance(body["message"], dict):
@@ -591,19 +597,21 @@ async def handle_incident(request: Request, background_tasks: BackgroundTasks):
                 
                 if isinstance(decoded_json, dict):
                     service_name = decoded_json.get("resource", {}).get("labels", {}).get("service_name", "speakgenie-backend")
-                    error_msg = decoded_json.get("textPayload") or str(decoded_json.get("jsonPayload", "")) or "500 Error Ingested from Pub/Sub"
+                    text_payload = decoded_json.get("textPayload")
+                    json_payload = str(decoded_json.get("jsonPayload", "")) if decoded_json.get("jsonPayload") else None
+                    error_msg = text_payload or json_payload or error_msg
             except Exception as parse_err:
                 print(f"[PUBSUB DECODE NOTICE] {parse_err}")
 
     # 2. Handle Direct Webhook Payload
     elif "service_name" in body or "error_code" in body:
         service_name = body.get("service_name", "speakgenie-backend")
-        error_msg = body.get("message", "500 Error")
+        error_msg = body.get("message", error_msg)
 
     print(f"\n[SRE-GUARD AUTONOMOUS TRIGGER] Ingested Alert for '{service_name}': {error_msg}")
     
-    # Trigger SRE Runner in background
-    background_tasks.add_task(sre_runner.run_live_inspection, service_name)
+    # Trigger SRE Runner in background with DIRECTLY ingested log text
+    background_tasks.add_task(sre_runner.run_live_inspection, service_name=service_name, raw_log_text=error_msg)
     
     return {
         "status": "triggered",

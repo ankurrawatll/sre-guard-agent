@@ -20,7 +20,7 @@ class SREAgentRunner:
     def __init__(self):
         self.client = genai.Client(api_key=GEMINI_API_KEY)
 
-    def run_live_inspection(self, service_name: str = "mygurukuledu-backend", max_iterations: int = 3):
+    def run_live_inspection(self, service_name: str = "speakgenie-backend", raw_log_text: str = None, max_iterations: int = 3):
         print("\n" + "="*80)
         print(" [SRE-GUARD BENCHMARKED AUTONOMOUS AGENT -- LIVE LOGS]")
         print("="*80)
@@ -28,11 +28,16 @@ class SREAgentRunner:
         # ---------------------------------------------------------------------
         # STEP 1: FETCH RAW STACK TRACE & CLOUD LOGS
         # ---------------------------------------------------------------------
-        print("\n[STEP 1/6] Fetching Error Stack Traces from Cloud Logging...")
-        time.sleep(1)
-        raw_logs = fetch_recent_logs(service_name=service_name)
+        print("\n[STEP 1/6] Ingesting Error Stack Trace...")
+        if raw_log_text and len(raw_log_text.strip()) > 10:
+            raw_logs = raw_log_text
+            print("[INFO] Using directly ingested Pub/Sub log event.")
+        else:
+            print("[INFO] Fetching recent logs from GCP Cloud Logging...")
+            raw_logs = fetch_recent_logs(service_name=service_name)
+            
         print("---------------------------------------------------------------------")
-        print(raw_logs.strip())
+        print(str(raw_logs).strip())
         print("---------------------------------------------------------------------")
         print("[SUCCESS] Raw logs ingested successfully.")
 
@@ -107,7 +112,7 @@ Target File Code ({target_file_path}):
 
 Generate the updated, fully fixed source code for {target_file_path}.
 Make sure to add defensive checks (null/undefined guards) to prevent future 500 errors.
-Return ONLY valid executable python code inside Python code blocks.
+Return ONLY valid executable Javascript code inside Javascript code blocks.
 """
             fix_response = self.client.models.generate_content(
                 model="gemini-3.6-flash",
@@ -116,8 +121,10 @@ Return ONLY valid executable python code inside Python code blocks.
             raw_patch = fix_response.text
             
             # Extract code from markdown block if present
-            if "```python" in raw_patch:
-                proposed_code = raw_patch.split("```python")[1].split("```")[0].strip()
+            if "```javascript" in raw_patch:
+                proposed_code = raw_patch.split("```javascript")[1].split("```")[0].strip()
+            elif "```js" in raw_patch:
+                proposed_code = raw_patch.split("```js")[1].split("```")[0].strip()
             elif "```" in raw_patch:
                 proposed_code = raw_patch.split("```")[1].split("```")[0].strip()
             else:

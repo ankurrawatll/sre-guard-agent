@@ -1,6 +1,7 @@
 import os
 import time
-import asyncio
+import requests
+import json
 from dotenv import load_dotenv
 from tools.log_tools import fetch_recent_logs
 from tools.github_tools import fetch_file_content, create_github_pr
@@ -12,13 +13,32 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY is missing in .env file.")
 
-import google.generativeai as genai
-genai.configure(api_key=GEMINI_API_KEY)
+def call_gemini_rest(prompt: str) -> str:
+    """
+    Direct HTTP REST API call to Gemini 3.6 Flash.
+    Bypasses google-auth / gRPC / GCP Metadata Server completely to prevent 401 UNAUTHENTICATED errors in Cloud Run.
+    """
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [
+            {
+                "parts": [{"text": prompt}]
+            }
+        ]
+    }
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(url, json=payload, headers=headers, timeout=60)
+    
+    if response.status_code != 200:
+        raise ValueError(f"Gemini API HTTP {response.status_code} Error: {response.text}")
+        
+    res_data = response.json()
+    try:
+        return res_data['candidates'][0]['content']['parts'][0]['text']
+    except (KeyError, IndexError) as e:
+        raise ValueError(f"Unexpected Gemini API response structure: {res_data}")
 
 class SREAgentRunner:
-    def __init__(self):
-        self.model_name = "gemini-3.6-flash"
-
     def run_live_inspection(self, service_name: str = "speakgenie-backend", raw_log_text: str = None, max_iterations: int = 3):
         print("\n" + "="*80)
         print(" [SRE-GUARD BENCHMARKED AUTONOMOUS AGENT -- LIVE LOGS]")
@@ -41,9 +61,9 @@ class SREAgentRunner:
         print("[SUCCESS] Raw logs ingested successfully.")
 
         # ---------------------------------------------------------------------
-        # STEP 2: TRIAGE ANALYSIS (GEMINI 3.6 FLASH)
+        # STEP 2: TRIAGE ANALYSIS (GEMINI 3.6 FLASH VIA REST)
         # ---------------------------------------------------------------------
-        print("\n[STEP 2/6] Triage Agent (Gemini 3.6 Flash) Analyzing Stack Trace...")
+        print("\n[STEP 2/6] Triage Agent (Gemini 3.6 Flash) Analyzing Stack Trace via REST API...")
         time.sleep(1)
         
         triage_prompt = f"""
@@ -56,9 +76,7 @@ Identify:
 3. The exact error type and root cause.
 4. Recommended defensive code fix strategy.
 """
-        model = genai.GenerativeModel(self.model_name)
-        triage_response = model.generate_content(triage_prompt)
-        triage_summary = triage_response.text
+        triage_summary = call_gemini_rest(triage_prompt)
         
         print("---------------------------------------------------------------------")
         print(triage_summary.strip())
@@ -111,8 +129,7 @@ Generate the updated, fully fixed source code for {target_file_path}.
 Make sure to add defensive checks (null/undefined guards) to prevent future 500 errors.
 Return ONLY valid executable Javascript code inside Javascript code blocks.
 """
-            fix_response = model.generate_content(fix_prompt)
-            raw_patch = fix_response.text
+            raw_patch = call_gemini_rest(fix_prompt)
             
             # Extract code from markdown block if present
             if "```javascript" in raw_patch:

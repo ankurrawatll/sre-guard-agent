@@ -18,18 +18,18 @@ app = FastAPI(
 INCIDENT_HISTORY = [
     {
         "id": "INC-8891",
-        "timestamp": "2026-08-24 17:05:49 UTC",
-        "service": "mygurukuledu-backend",
+        "timestamp": "2026-08-25 13:49:00 UTC",
+        "service": "mygurukuledu-api",
         "error_type": "TypeError: Cannot read properties of undefined (reading 'role')",
-        "file": "/app/mygurukuledu/backend/server.js:48:22",
-        "status": "RESOLVED",
-        "benchmark_score": "100% PASSED",
-        "pr_url": "https://github.com/ankurrawatll/sre-guard-agent/pull/3"
+        "file": "src/server.js:48:22",
+        "status": "RESOLVED & VERIFIED",
+        "benchmark_score": "100% PASS",
+        "pr_url": "https://github.com/Dharma-Angels/mygurukuledu-api/pulls"
     }
 ]
 
 class IncidentAlert(BaseModel):
-    service_name: str = "mygurukuledu-backend"
+    service_name: str = "mygurukuledu-api"
     error_code: int = 500
     message: str = "TypeError: Cannot read properties of undefined (reading 'role')"
     trace_id: str = "inc-9901"
@@ -42,174 +42,406 @@ def dashboard_ui():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRE-Guard Operations Dashboard | Google Agentic Hackathon</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <title>SRE-GUARD | Autonomous Reliability & DevOps Coordinator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0b0f19;
-            --card-bg: rgba(18, 24, 38, 0.75);
+            --bg-dark: #07060b;
+            --card-bg: rgba(15, 16, 26, 0.75);
             --border-color: rgba(255, 255, 255, 0.08);
-            --accent-blue: #38bdf8;
-            --accent-green: #22c55e;
+            --accent-orange: #ff6b35;
+            --accent-pink: #ec4899;
             --accent-purple: #a855f7;
+            --accent-magenta: #d946ef;
+            --accent-green: #10b981;
             --text-main: #f3f4f6;
-            --text-muted: #9ca3af;
+            --text-muted: #94a3b8;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             font-family: 'Outfit', sans-serif;
             background: var(--bg-dark);
             color: var(--text-main);
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.12) 0px, transparent 50%);
             min-height: 100vh;
-            padding: 2rem;
+            padding: 2.5rem;
+            position: relative;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(236, 72, 153, 0.18) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.18) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(255, 107, 53, 0.08) 0%, transparent 60%);
         }
-        .container { max-width: 1200px; margin: 0 auto; }
+
+        .container { max-width: 1280px; margin: 0 auto; }
+
+        /* Header Layout */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 2rem;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
         }
-        .logo-group { display: flex; align-items: center; gap: 1rem; }
-        .logo-badge {
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-        }
-        .status-badge {
-            background: rgba(34, 197, 94, 0.15);
-            color: var(--accent-green);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
+
+        .header-left { display: flex; align-items: center; gap: 1.25rem; }
+
+        .brand-badge {
+            background: linear-gradient(135deg, #f97316 0%, #ec4899 50%, #a855f7 100%);
+            padding: 0.6rem 1.4rem;
+            border-radius: 14px;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.6rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            color: #ffffff;
+            box-shadow: 0 8px 24px rgba(236, 72, 153, 0.35);
         }
-        .status-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        
-        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
-        .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .card-title { font-size: 1.1rem; font-weight: 600; color: var(--accent-blue); }
-        
-        .btn {
-            background: linear-gradient(135deg, #0284c7, #7e22ce);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
+
+        .brand-title h1 {
+            font-size: 1.5rem;
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
+            font-style: italic;
+            background: linear-gradient(to right, #ffffff, #e2e8f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
-        
-        .code-block {
-            font-family: 'JetBrains Mono', monospace;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 1rem;
-            border-radius: 8px;
+
+        .brand-title p {
             font-size: 0.85rem;
-            color: #e5e7eb;
-            overflow-x: auto;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: 0.15rem;
         }
-        .tag {
-            display: inline-block;
-            padding: 0.2rem 0.6rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
+
+        .header-status {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            padding: 0.5rem 1.2rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #34d399;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 500;
         }
-        .tag-green { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
-        .tag-purple { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
-        
-        .metric-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+
+        .pulse-dot {
+            width: 9px;
+            height: 9px;
+            background: #34d399;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #34d399;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+        }
+
+        /* Top 3 Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
         .metric-card {
             background: var(--card-bg);
+            backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
-            padding: 1.25rem;
-            border-radius: 12px;
-            text-align: center;
+            border-radius: 20px;
+            padding: 1.5rem 1.75rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
         }
-        .metric-value { font-size: 1.8rem; font-weight: 700; color: var(--accent-blue); margin-top: 0.25rem; }
-        .metric-label { font-size: 0.8rem; color: var(--text-muted); }
+
+        .metric-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(168, 85, 247, 0.12);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-magenta);
+            flex-shrink: 0;
+        }
+
+        .metric-info label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-style: italic;
+            display: block;
+            margin-bottom: 0.35rem;
+        }
+
+        .metric-info .value {
+            font-size: 1.65rem;
+            font-weight: 700;
+            font-style: italic;
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Main Content Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.75fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.75rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            font-style: italic;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: #ffffff;
+        }
+
+        .btn-trigger {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f97316 100%);
+            color: #ffffff;
+            border: none;
+            padding: 0.75rem 1.6rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
+            font-family: inherit;
+        }
+
+        .btn-trigger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(236, 72, 153, 0.5);
+        }
+
+        /* Incident Box */
+        .incident-box {
+            border-left: 3px solid #ec4899;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .incident-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .incident-id {
+            font-weight: 700;
+            font-style: italic;
+            font-size: 1rem;
+            color: #f3f4f6;
+        }
+
+        .status-pill-green {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .stack-trace {
+            font-size: 0.85rem;
+            color: #ec4899;
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+
+        .code-box {
+            background: #090a10;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 1.25rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #34d399;
+            margin-bottom: 1rem;
+        }
+
+        .pr-link-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            color: #f3f4f6;
+        }
+
+        .pr-link-row a {
+            color: #ec4899;
+            text-decoration: underline;
+            font-style: italic;
+            word-break: break-all;
+        }
+
+        /* Sidebar Info List */
+        .safeguard-list {
+            list-style: none;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.9;
+        }
+
+        .safeguard-list li {
+            position: relative;
+            padding-left: 1.2rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .safeguard-list li::before {
+            content: "•";
+            color: var(--accent-magenta);
+            position: absolute;
+            left: 0;
+            font-size: 1.2rem;
+        }
+
+        .safeguard-list strong { color: #f3f4f6; }
+
+        /* Webhook Endpoint Card */
+        .webhook-card {
+            border: 1px solid rgba(236, 72, 153, 0.25);
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+            font-style: italic;
+            background: linear-gradient(to right, var(--accent-orange), var(--accent-pink), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 968px) {
+            .metrics-grid, .main-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <header>
-            <div class="logo-group">
-                <div class="logo-badge">SRE-GUARD</div>
-                <div>
-                    <h2>Autonomous Reliability & DevOps Coordinator</h2>
-                    <p style="font-size: 0.85rem; color: var(--text-muted);">Google All Things Agentic Hackathon | Track 1: Taskmaster</p>
+            <div class="header-left">
+                <div class="brand-badge">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    SRE-GUARD
+                </div>
+                <div class="brand-title">
+                    <h1>Autonomous Reliability & DevOps Coordinator</h1>
+                    <p>Google All Things Agentic Hackathon | Track 1: Taskmaster</p>
                 </div>
             </div>
-            <div class="status-badge">
-                <div class="status-dot"></div>
+            <div class="header-status">
+                <div class="pulse-dot"></div>
                 Agent Active on Cloud Run
             </div>
         </header>
 
-        <div class="metric-group">
+        <!-- Top Metrics -->
+        <div class="metrics-grid">
             <div class="metric-card">
-                <div class="metric-label">Model Reasoning Engine</div>
-                <div class="metric-value" style="font-size: 1.2rem; margin-top:0.6rem;">Gemini 3.6 Flash</div>
+                <div class="metric-icon">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04Z"/></svg>
+                </div>
+                <div class="metric-info">
+                    <label>Model Reasoning Engine</label>
+                    <div class="value">Gemini 3.6 Flash</div>
+                </div>
             </div>
+
             <div class="metric-card">
-                <div class="metric-label">Self-Correction Benchmark</div>
-                <div class="metric-value" style="color: var(--accent-green);">100% PASS</div>
+                <div class="metric-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25);">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                </div>
+                <div class="metric-info">
+                    <label>Self-Correction Benchmark</label>
+                    <div class="value" style="background: linear-gradient(135deg, #10b981, #f97316); -webkit-background-clip: text;">100% PASS</div>
+                </div>
             </div>
+
             <div class="metric-card">
-                <div class="metric-label">Autonomy Level</div>
-                <div class="metric-value" style="color: var(--accent-purple);">Event-Driven</div>
+                <div class="metric-icon" style="color: #f97316; background: rgba(249, 115, 22, 0.12); border-color: rgba(249, 115, 22, 0.25);">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+                </div>
+                <div class="metric-info">
+                    <label>Autonomy Level</label>
+                    <div class="value" style="background: linear-gradient(135deg, #ec4899, #f97316); -webkit-background-clip: text;">Event-Driven</div>
+                </div>
             </div>
         </div>
 
-        <div class="grid">
+        <!-- Main Content -->
+        <div class="main-grid">
             <div>
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title">🚨 Recent Incidents & Autonomous PR Fixes</div>
-                        <button class="btn" onclick="triggerIncident()">Simulate 500 Crash Alert</button>
+                        <div class="card-title">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                            Recent Incidents & Autonomous PR Fixes
+                        </div>
+                        <button class="btn-trigger" onclick="triggerIncident()">Simulate 500 Crash Alert</button>
                     </div>
+
                     <div id="incidentList">
-                        <div style="border-left: 3px solid var(--accent-green); padding-left: 1rem; margin-bottom: 1.5rem;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                                <strong>INC-8891: mygurukuledu-backend (500 Error)</strong>
-                                <span class="tag tag-green">RESOLVED & VERIFIED</span>
+                        <div class="incident-box">
+                            <div class="incident-top">
+                                <span class="incident-id">INC-8891: mygurukuledu-api (500 Error)</span>
+                                <span class="status-pill-green">✓ RESOLVED & VERIFIED</span>
                             </div>
-                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                                Stack Trace: <code>server.js:48:22</code> | TypeError: Cannot read properties of undefined (reading 'role')
-                            </p>
-                            <div class="code-block" style="margin-bottom:0.5rem;">
-+ const userRole = req.body?.sessionData?.user?.role;
+                            <div class="stack-trace">
+                                Stack Trace: server.js:48:22 | TypeError: Cannot read properties of undefined (reading 'role')
                             </div>
-                            <div style="font-size: 0.85rem;">
-                                🔗 <strong>GitHub PR:</strong> 
-                                <a href="https://github.com/ankurrawatll/sre-guard-agent/pull/3" target="_blank" style="color:var(--accent-blue);">
-                                    https://github.com/ankurrawatll/sre-guard-agent/pull/3
-                                </a>
+                            <div class="code-box">
+                                + const userRole = req.body?.sessionData?.user?.role;
+                            </div>
+                            <div class="pr-link-row">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                                GitHub PR: <a href="https://github.com/Dharma-Angels/mygurukuledu-api/pulls" target="_blank">https://github.com/Dharma-Angels/mygurukuledu-api/pulls</a>
                             </div>
                         </div>
                     </div>
@@ -218,8 +450,11 @@ def dashboard_ui():
 
             <div>
                 <div class="card">
-                    <div class="card-title" style="margin-bottom:1rem;">🤖 Agent Lifecycle & Safeguards</div>
-                    <ul style="font-size: 0.85rem; line-height: 1.8; color: var(--text-muted); padding-left: 1.2rem;">
+                    <div class="card-title" style="margin-bottom: 1.2rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Agent Lifecycle & Safeguards
+                    </div>
+                    <ul class="safeguard-list">
                         <li><strong>Scale-to-Zero</strong>: 0 vCPU cost when idle on GCP Cloud Run.</li>
                         <li><strong>Triage Engine</strong>: Gemini 3.6 Flash parses raw stack traces in 1s.</li>
                         <li><strong>Verification Loop</strong>: Automated syntax check before opening PRs.</li>
@@ -227,16 +462,23 @@ def dashboard_ui():
                     </ul>
                 </div>
 
-                <div class="card">
-                    <div class="card-title" style="margin-bottom:1rem;">⚡ Webhook Integration Endpoint</div>
-                    <div class="code-block">
-POST /webhook/incident
+                <div class="card webhook-card">
+                    <div class="card-title" style="margin-bottom: 1.2rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        Webhook Integration Endpoint
+                    </div>
+                    <div class="code-box" style="margin-bottom:0; background: rgba(0, 0, 0, 0.4);">
+<span style="color:#ec4899;">POST</span> /webhook/incident
 Host: Cloud Run Service
 Header: Content-Type: application/json
                     </div>
                 </div>
             </div>
         </div>
+
+        <footer>
+            Autonomous · Reliable · Event-Driven
+        </footer>
     </div>
 
     <script>
@@ -247,13 +489,13 @@ Header: Content-Type: application/json
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        service_name: 'mygurukuledu-backend',
+                        service_name: 'mygurukuledu-api',
                         error_code: 500,
                         message: 'TypeError: Cannot read properties of undefined (reading \'role\')'
                     })
                 });
                 const data = await res.json();
-                alert("SRE-Guard Workflow Triggered! Check GitHub PRs in 5-10 seconds: " + data.message);
+                alert("SRE-Guard Workflow Triggered! Check GitHub PRs on Dharma-Angels/mygurukuledu-api in 5-10 seconds: " + data.message);
             } catch (err) {
                 alert("Error triggering webhook: " + err);
             }

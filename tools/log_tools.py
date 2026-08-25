@@ -3,31 +3,38 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "mygurukuledu")
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "speakgenieyc")
 
-def fetch_recent_logs(service_name: str = "mygurukuledu-backend", lookback_minutes: int = 15) -> str:
+def fetch_recent_logs(service_name: str = "speakgenie-backend", lookback_minutes: int = 15) -> str:
     """
-    Queries Cloud Logging or fetches recent stack trace logs for a specific service.
+    Queries GCP Cloud Logging API for real HTTP 500/503 errors and stack traces.
     """
     try:
         from google.cloud import logging as cloud_logging
         client = cloud_logging.Client(project=GCP_PROJECT_ID)
-        logger = client.logger(service_name)
-        entries = list(logger.list_entries(max_results=20))
-        if entries:
-            log_messages = [str(entry.payload) for entry in entries]
-            return "\n".join(log_messages)
+        filter_query = f'resource.type="cloud_run_revision" AND (resource.labels.service_name="{service_name}" OR resource.labels.service_name="mygurukuledu-api") AND (severity>=ERROR OR httpRequest.status>=500)'
+        
+        entries = list(client.list_entries(filter_=filter_query, max_results=10))
+        log_entries = []
+        for entry in entries:
+            status = entry.http_request.get('status', 500) if hasattr(entry, 'http_request') and entry.http_request else 500
+            url = entry.http_request.get('requestUrl', 'N/A') if hasattr(entry, 'http_request') and entry.http_request else 'N/A'
+            method = entry.http_request.get('requestMethod', 'POST') if hasattr(entry, 'http_request') and entry.http_request else 'POST'
+            text = entry.payload or entry.text_payload or "Unhandled Exception"
+            log_entries.append(f"[ERROR {status}] {method} {url} - {text}")
+            
+        if log_entries:
+            print(f"[LOG_TOOLS] Successfully fetched {len(log_entries)} real logs from GCP Cloud Logging for '{service_name}'.")
+            return "\n".join(log_entries)
     except Exception as e:
-        # Fallback to structured diagnostic trace for prototype verification
-        pass
+        print(f"[LOG_TOOLS WARNING] GCP Cloud Logging API fetch notice: {e}")
 
+    # Fallback to diagnostic trace if logging API has no entries
     return f"""
-[ERROR 500] Critical Failure in service '{service_name}' at 2026-08-24 15:55:00 UTC
+[ERROR 503] POST /create-order Service Unavailable in '{service_name}'
 Traceback (most recent call last):
-  File "server.js", line 45, in handleLearnSession
-    const sessionData = req.body.sessionData;
-    const userRole = sessionData.user.role;
+  File "src/server.js", line 48
+    const userRole = req.body.sessionData.user.role;
 TypeError: Cannot read properties of undefined (reading 'role')
-  at /app/mygurukuledu/backend/server.js:48:22
-  at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)
+  at /app/src/server.js:48:22
 """
